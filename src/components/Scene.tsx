@@ -123,10 +123,10 @@ function PlanetMesh({
 
 // Custom component to handle camera transitions smoothly
 function CameraController({ selectedPlanetId, scaleMode }: { selectedPlanetId: string | null; scaleMode: 'visual' | 'true' }) {
-  const { camera, scene } = useFrame((state) => {
+  useFrame((state) => {
       // Find the selected planet's group in the scene
       if (selectedPlanetId) {
-          const selectedMesh = scene.getObjectByName(selectedPlanetId) as THREE.Mesh;
+          const selectedMesh = state.scene.getObjectByName(selectedPlanetId) as THREE.Mesh;
           if (selectedMesh) {
               const targetPosition = new THREE.Vector3();
               selectedMesh.getWorldPosition(targetPosition);
