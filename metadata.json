@@ -1,0 +1,6 @@
+{
+  "name": "Solar System Odyssey",
+  "description": "An interactive 3D orrery to explore the planets of our solar system, featuring smooth camera transitions, orbital mechanics, and educational facts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
