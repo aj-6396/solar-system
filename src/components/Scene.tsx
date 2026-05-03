@@ -14,15 +14,15 @@ interface SceneProps {
 const TIME_SCALE = 0.5;
 
 function PlanetMesh({ 
-  planet, scaleMode, isSelected, onClick, rings 
+  planet, scaleMode, isSelected, onClick, rings, isPaused, onHover
 }: { 
-  planet: PlanetData; scaleMode: 'visual' | 'true'; isSelected: boolean; onClick: () => void; rings?: { innerRadius: number; outerRadius: number; color: string }
+  planet: PlanetData; scaleMode: 'visual' | 'true'; isSelected: boolean; onClick: () => void; rings?: { innerRadius: number; outerRadius: number; color: string }; isPaused: boolean; onHover: (hover: boolean) => void;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const orbitGroupRef = useRef<THREE.Group>(null);
   const hoverRef = useRef<THREE.Mesh>(null);
   
-  const [hovered, setHovered] = useState(false);
+  const [hoverLocal, setHoverLocal] = useState(false);
 
   // Random starting position for orbit
   const randomStartAngle = useMemo(() => Math.random() * Math.PI * 2, []);
@@ -47,15 +47,19 @@ function PlanetMesh({
 
   useFrame((_, delta) => {
     // Orbital movement
-    timeRef.current += delta * orbitalSpeed;
+    if (!isPaused) {
+      timeRef.current += delta * orbitalSpeed;
+    }
     if (orbitGroupRef.current) {
       orbitGroupRef.current.position.x = Math.cos(timeRef.current) * distance;
       orbitGroupRef.current.position.z = Math.sin(timeRef.current) * distance;
     }
     
     // Axial rotation
-    if (meshRef.current) {
-      meshRef.current.rotation.y += delta * rotationSpeed;
+    if (!isPaused) {
+      if (meshRef.current) {
+        meshRef.current.rotation.y += delta * rotationSpeed;
+      }
     }
 
     // Hover effect rotation
@@ -71,8 +75,8 @@ function PlanetMesh({
       {distance > 0 && (
          <Line 
            points={orbitPoints} 
-           color={isSelected || hovered ? planet.color : '#ffffff'} 
-           opacity={isSelected || hovered ? 0.6 : 0.15} 
+           color={isSelected || hoverLocal ? planet.color : '#ffffff'} 
+           opacity={isSelected || hoverLocal ? 0.6 : 0.15} 
            transparent 
            lineWidth={1} 
          />
@@ -83,8 +87,17 @@ function PlanetMesh({
         <mesh 
           ref={meshRef} 
           onClick={(e) => { e.stopPropagation(); onClick(); }}
-          onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
-          onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
+          onPointerOver={(e) => { 
+            e.stopPropagation(); 
+            setHoverLocal(true);
+            onHover(true);
+            document.body.style.cursor = 'pointer'; 
+          }}
+          onPointerOut={() => { 
+            setHoverLocal(false);
+            onHover(false);
+            document.body.style.cursor = 'auto'; 
+          }}
           name={planet.id}
         >
           <sphereGeometry args={[radius, 64, 64]} />
@@ -110,7 +123,7 @@ function PlanetMesh({
         )}
 
         {/* Selection/Hover Highlight */}
-        {(isSelected || hovered) && (
+        {(isSelected || hoverLocal) && (
           <mesh ref={hoverRef}>
             <sphereGeometry args={[radius * 1.15, 32, 32]} />
             <meshBasicMaterial color={planet.color} wireframe transparent opacity={0.3} />
@@ -152,6 +165,10 @@ function CameraController({ selectedPlanetId, scaleMode }: { selectedPlanetId: s
 }
 
 export function SolarSystemScene({ scaleMode, selectedPlanetId, onSelectPlanet }: SceneProps) {
+  const [hoveredPlanetId, setHoveredPlanetId] = useState<string | null>(null);
+
+  const isPaused = hoveredPlanetId !== null;
+
   return (
     <>
       <color attach="background" args={['#020408']} />
@@ -173,7 +190,7 @@ export function SolarSystemScene({ scaleMode, selectedPlanetId, onSelectPlanet }
         enableRotate={!selectedPlanetId}
         maxDistance={500}
         minDistance={2}
-        autoRotate={!selectedPlanetId}
+        autoRotate={!selectedPlanetId && !isPaused}
         autoRotateSpeed={0.5}
       />
 
@@ -186,6 +203,8 @@ export function SolarSystemScene({ scaleMode, selectedPlanetId, onSelectPlanet }
             isSelected={selectedPlanetId === planet.id}
             onClick={() => onSelectPlanet(planet.id)}
             rings={planet.id === 'saturn' ? RINGS_DATA.saturn : planet.id === 'uranus' ? RINGS_DATA.uranus : undefined}
+            isPaused={isPaused}
+            onHover={(hover) => setHoveredPlanetId(hover ? planet.id : null)}
           />
         ))}
       </group>
